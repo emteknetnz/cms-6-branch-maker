@@ -36,10 +36,10 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
     // modules
     $modules = filtered_modules($cmsMajor, $input);
 
-    // ALL MODULES
-    $allModules = array_merge(supported_modules($cmsMajor), extra_repositories());
+    // MODULES TO UPDATE
+    $modulesToUpdate = array_merge(supported_modules($cmsMajor), extra_repositories());
 
-    $allModules = array_filter($allModules, function($module) {
+    $modulesToUpdate = array_filter($modulesToUpdate, function($module) {
         $ghrepo = $module['ghrepo'];
         if (str_contains($ghrepo, 'gha-')) {
             return false;
@@ -55,7 +55,7 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
             'silverstripe/silverstripe-standards',
             'silverstripe/vendor-plugin',
             'silverstripe/webpack-config',
-            'silverstripe/developer-docs',
+            // 'silverstripe/developer-docs',
             // themes
             'silverstripe/cwp-starter-theme',
             'silverstripe/cwp-watea-theme',
@@ -66,7 +66,7 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
         return true;
     });
 
-    usort($allModules, function($a, $b) {
+    usort($modulesToUpdate, function($a, $b) {
         return $a['ghrepo'] <=> $b['ghrepo'];
     });
 
@@ -111,10 +111,26 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
         'repo' => 'silverstripe-serve',
         'cloneUrl' => 'git@github.com:silverstripe/silverstripe-serve.git',
     ];
+    $mods[] = [
+        'ghrepo' => 'silverstripe/silverstripe-testsession',
+        'account' => 'silverstripe',
+        'repo' => 'silverstripe-testsession',
+        'cloneUrl' => 'git@github.com:silverstripe/silverstripe-testsession.git',
+    ];
+    $mods[] = [
+        'ghrepo' => 'silverstripe/recipe-kitchen-sink',
+        'account' => 'silverstripe',
+        'repo' => 'recipe-kitchen-sink',
+        'cloneUrl' => 'git@github.com:silverstripe/recipe-kitchen-sink.git',
+    ];
+    $mods[] = [
+        'ghrepo' => 'silverstripe/silversripe-linkfield',
+        'account' => 'silverstripe',
+        'repo' => 'silverstripe-linkfield',
+        'cloneUrl' => 'git@github.com:silverstripe/silverstripe-linkfield.git',
+    ];
     $modules = array_merge($mods, $modules);
-    $allModules = array_merge($mods, $allModules);
-
-    print_r($allModules);die;
+    $modulesToUpdate = array_merge($mods, $modulesToUpdate);
 
     // clone repos & run scripts
     foreach (['clone-only', 'run-scripts'] as $thinger) {
@@ -129,19 +145,23 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
             }
         }
         if ($thinger === 'run-scripts') {
-            foreach ($allModules as $module) {
+            foreach ($modulesToUpdate as $module) {
                 $repo = $module['repo'];
                 $MODULE_DIR =  MODULES_DIR . "/$repo";
-                if (!file_exists("$MODULE_DIR/composer.json")) {
-                    error("Failed to find composer.json in $MODULE_DIR");
+                if (file_exists("$MODULE_DIR/composer.json")) {
+                    $json = json_decode(file_get_contents("$MODULE_DIR/composer.json"), true);
+                    if (!$json) {
+                        error("Failed to parse json in $MODULE_DIR/composer.json");
+                    }
+                    $composerName = $json['name'];
+                    $REPO_TO_COMPOSER_NAME[$repo] = $composerName;
+                    $COMPOSER_NAME_TO_REPO[$composerName] = $repo;
                 }
-                $json = json_decode(file_get_contents("$MODULE_DIR/composer.json"), true);
-                if (!$json) {
-                    error("Failed to parse json in $MODULE_DIR/composer.json");
+                if ($repo === 'silverstripe/developer-docs') {
+                    $composerName = 'silverstripe/developer-docs';
+                    $REPO_TO_COMPOSER_NAME[$repo] = $composerName;
+                    $COMPOSER_NAME_TO_REPO[$composerName] = $repo;
                 }
-                $composerName = $json['name'];
-                $REPO_TO_COMPOSER_NAME[$repo] = $composerName;
-                $COMPOSER_NAME_TO_REPO[$composerName] = $repo;
             }
         }
 
