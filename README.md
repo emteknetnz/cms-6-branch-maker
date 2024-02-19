@@ -1,4 +1,10 @@
-# Module standardiser
+# CMS 6 branch maker
+
+FORKED FROM MODULE STANDARDISER TOOL
+
+===
+
+# FOLLOWING DOCS ARE FOR MODULE STANDARDISER TOOL
 
 This tools standardises some files in Silverstripe modules that's intended to run on a developers laptop and create 
 a number of pull-requests in GitHub.

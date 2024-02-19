@@ -26,8 +26,47 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
     // CMS major version to use
     $cmsMajor = $input->getOption('cms-major') ?: CURRENT_CMS_MAJOR;
 
+    // HARDCODED TO USE CMS5 NEXT-MINOR BRANCHES
+    $cmsMajor = '5';
+    $branchOption = 'next-minor';
+
     // modules
     $modules = filtered_modules($cmsMajor, $input);
+
+    $modules = array_filter($modules, function($module) {
+        $ghrepo = $module['ghrepo'];
+        if (str_contains($ghrepo, 'gha-')) {
+            return false;
+        }
+        if (in_array($ghrepo, [
+            // 403 repos
+            'tractorcow-farm/silverstripe-fluent',
+            // non-module repos
+            'silverstripe/.github',
+            'silverstripe/eslint-config',
+            'silverstripe/markdown-php-codesniffer',
+            'silverstripe/recipe-plugin',
+            'silverstripe/silverstripe-standards',
+            'silverstripe/vendor-plugin',
+            'silverstripe/webpack-config',
+            'silverstripe/developer-docs',
+            // themes
+            'silverstripe/cwp-starter-theme',
+            'silverstripe/cwp-watea-theme',
+            'silverstripe-themes/silverstripe-simple',
+        ])) {
+            return false;
+        }
+        return true;
+    });
+
+    usort($modules, function($a, $b) {
+        return $a['ghrepo'] <=> $b['ghrepo'];
+    });
+
+    print_r(array_column($modules, 'ghrepo'));
+
+    die();
 
     // script files
     if ($branchOption === 'github-default') {
@@ -174,31 +213,33 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
             // create new commit
             cmd("git commit -m '" . PR_TITLE . "'", $MODULE_DIR);
         }
-        if ($input->getOption('dry-run')) {
-            info('Not pushing changes or creating pull-request because --dry-run option is set');
-            continue;
-        }
-        // push changes to pr-remote
-        // force pushing for cases when doing update-prs
-        // double make check we're on a branch that we are willing to force push
-        $currentBranch = cmd('git rev-parse --abbrev-ref HEAD', $MODULE_DIR);
-        if (!preg_match('#^pulls/([0-9\.]+|master|main)/module\-standardiser\-[0-9]{10}$#', $currentBranch)) {
-            error("Branch $currentBranch is not a pull-request branch");
-        }
-        cmd("git push -f -u pr-remote $prBranch", $MODULE_DIR);
-        // create pull-request using github api
-        if (!$input->getOption('update-prs')) {
-            // https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#create-a-pull-request
-            $responseJson = github_api("https://api.github.com/repos/$account/$repo/pulls", [
-                'title' => PR_TITLE,
-                'body' => PR_DESCRIPTION,
-                'head' => "$prAccount:$prBranch",
-                'base' => $branchToCheckout,
-            ]);
-            $PRS_CREATED[] = $responseJson['html_url'];
-            info("Created pull-request for $repo");
-        }
-        $REPOS_WITH_PRS_CREATED[] = $repo;
+        // COMMENTING OUT PUSH CODE TO REDUCE RISK
+        //
+        // if ($input->getOption('dry-run')) {
+        //     info('Not pushing changes or creating pull-request because --dry-run option is set');
+        //     continue;
+        // }
+        // // push changes to pr-remote
+        // // force pushing for cases when doing update-prs
+        // // double make check we're on a branch that we are willing to force push
+        // $currentBranch = cmd('git rev-parse --abbrev-ref HEAD', $MODULE_DIR);
+        // if (!preg_match('#^pulls/([0-9\.]+|master|main)/module\-standardiser\-[0-9]{10}$#', $currentBranch)) {
+        //     error("Branch $currentBranch is not a pull-request branch");
+        // }
+        // cmd("git push -f -u pr-remote $prBranch", $MODULE_DIR);
+        // // create pull-request using github api
+        // if (!$input->getOption('update-prs')) {
+        //     // https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#create-a-pull-request
+        //     $responseJson = github_api("https://api.github.com/repos/$account/$repo/pulls", [
+        //         'title' => PR_TITLE,
+        //         'body' => PR_DESCRIPTION,
+        //         'head' => "$prAccount:$prBranch",
+        //         'base' => $branchToCheckout,
+        //     ]);
+        //     $PRS_CREATED[] = $responseJson['html_url'];
+        //     info("Created pull-request for $repo");
+        // }
+        // $REPOS_WITH_PRS_CREATED[] = $repo;
     }
     output_repos_with_prs_created();
     output_prs_created();
