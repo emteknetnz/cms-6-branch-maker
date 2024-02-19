@@ -114,6 +114,8 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
     $modules = array_merge($mods, $modules);
     $allModules = array_merge($mods, $allModules);
 
+    print_r($allModules);die;
+
     // clone repos & run scripts
     foreach (['clone-only', 'run-scripts'] as $thinger) {
         $moduleExists = [];
