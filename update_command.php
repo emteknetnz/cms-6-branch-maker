@@ -193,7 +193,12 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
             if (in_array('pr-remote', $remotes)) {
                 cmd('git remote remove pr-remote', $MODULE_DIR);
             }
+            if (in_array('ss', $remotes)) {
+                cmd('git remote remove ss', $MODULE_DIR);
+            }
+            // ccs
             cmd("git remote add pr-remote $prOrigin", $MODULE_DIR);
+            cmd("git remote add ss $origin", $MODULE_DIR);
 
             if ($input->getOption('update-prs')) {
                 // checkout latest existing pr branch
@@ -272,15 +277,36 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
                 continue;
             }
 
+            if (!in_array($repo, array_column($modulesToUpdate, 'repo'))) {
+                continue;
+            }
+
             // ensure that this branch actually supports the cmsMajor we're targetting
             if ($branchOption !== 'github-default' && current_branch_cms_major() !== $cmsMajor) {
                 error("Branch $branchToCheckout does not support CMS major version $cmsMajor");
             }
 
+            // CREATE INCREMENTED BRANCH
+            $newMajorBranch =  (int)$branchToCheckout + 1;
+            // validate is an int
+            if ($newMajorBranch <= 1) {
+                error("newMajorBranch '$newMajorBranch' is not valid for $repo");
+            }
+            $res = cmd("git branch", $MODULE_DIR);
+            $newMajorBranchExists = strpos($res, "  $newMajorBranch\n") !== false;
+            if (!$newMajorBranchExists) {
+                cmd("git checkout -b $newMajorBranch", $MODULE_DIR);
+            } else {
+                cmd("git checkout $newMajorBranch", $MODULE_DIR);
+            }
+
+            // PR TITLE
+            $PR_TITLE = "DEP Create CMS 6 branch";
+
             // create a new branch used for the pull-request
+            $timestamp = time();
+            $prBranch = "pulls/$newMajorBranch/module-standardiser-$timestamp";
             if (!$input->getOption('update-prs')) {
-                $timestamp = time();
-                $prBranch = "pulls/$branchToCheckout/module-standardiser-$timestamp";
                 cmd("git checkout -b $prBranch", $MODULE_DIR);
             }
 
@@ -303,20 +329,33 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
             if ($input->getOption('update-prs')) {
                 // squash on to existing commit
                 $lastCommitMessage = cmd('git log -1 --pretty=%B', $MODULE_DIR);
-                if ($lastCommitMessage !== PR_TITLE) {
-                    error("Last commit message \"$lastCommitMessage\" does not match PR_TITLE \"" . PR_TITLE . "\"");
+                if ($lastCommitMessage !== $PR_TITLE) {
+                    error("Last commit message \"$lastCommitMessage\" does not match PR_TITLE \"" . $PR_TITLE . "\"");
                 }
                 cmd("git commit --amend --no-edit", $MODULE_DIR);
             } else {
                 // create new commit
-                cmd("git commit -m '" . PR_TITLE . "'", $MODULE_DIR);
+                cmd("git commit -m '" . $PR_TITLE . "'", $MODULE_DIR);
+            }
+            if ($input->getOption('dry-run')) {
+                info('Not pushing changes or creating pull-request because --dry-run option is set');
+                continue;
             }
             // COMMENTING OUT PUSH CODE TO REDUCE RISK
             //
-            // if ($input->getOption('dry-run')) {
-            //     info('Not pushing changes or creating pull-request because --dry-run option is set');
-            //     continue;
-            // }
+
+            // PUSH `6` branch to remotes
+            cmd("git checkout $newMajorBranch", $MODULE_DIR);
+            // ccs
+            cmd("git push pr-remote $newMajorBranch", $MODULE_DIR);
+            // ss
+            cmd("git push ss $newMajorBranch", $MODULE_DIR);
+
+            // CHECKOUT PR BRANCH AGAIN
+            cmd("git checkout $prBranch", $MODULE_DIR);
+
+            $PR_DESCRIPTION = 'Issue https://github.com/silverstripe/.github/issues/191';
+
             // // push changes to pr-remote
             // // force pushing for cases when doing update-prs
             // // double make check we're on a branch that we are willing to force push
@@ -329,10 +368,10 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
             // if (!$input->getOption('update-prs')) {
             //     // https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#create-a-pull-request
             //     $responseJson = github_api("https://api.github.com/repos/$account/$repo/pulls", [
-            //         'title' => PR_TITLE,
-            //         'body' => PR_DESCRIPTION,
+            //         'title' => $PR_TITLE,
+            //         'body' => $PR_DESCRIPTION,
             //         'head' => "$prAccount:$prBranch",
-            //         'base' => $branchToCheckout,
+            //         'base' => $newMajorBranch,
             //     ]);
             //     $PRS_CREATED[] = $responseJson['html_url'];
             //     info("Created pull-request for $repo");
