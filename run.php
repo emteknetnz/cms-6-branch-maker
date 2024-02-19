@@ -27,6 +27,10 @@ $REPOS_WITH_PRS_CREATED = [];
 $REPOS_WITH_LABELS_UPDATED = [];
 $OUT = null;
 
+// MORE GLOBAL VARIABLES
+$repoToComposerName = [];
+$composerNameToRepo = [];
+
 // options
 $optionCmsMajor = [
     'cms-major',
