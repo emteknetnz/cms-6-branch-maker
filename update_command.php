@@ -301,7 +301,7 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
             }
 
             // PR TITLE
-            $PR_TITLE = "DEP Create CMS 6 branch";
+            $PR_TITLE = "DEP Dependencies for CMS 6";
 
             // create a new branch used for the pull-request
             $timestamp = time();
@@ -341,8 +341,11 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
                 info('Not pushing changes or creating pull-request because --dry-run option is set');
                 continue;
             }
-            // COMMENTING OUT PUSH CODE TO REDUCE RISK
-            //
+
+            if ($repo !== 'silverstripe-campaign-admin') {
+                info("Skipping $repo because not silverstripe/silverstripe-campaign-admin");
+                continue;
+            }
 
             // PUSH `6` branch to remotes
             cmd("git checkout $newMajorBranch", $MODULE_DIR);
@@ -356,27 +359,27 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
 
             $PR_DESCRIPTION = 'Issue https://github.com/silverstripe/.github/issues/191';
 
-            // // push changes to pr-remote
-            // // force pushing for cases when doing update-prs
-            // // double make check we're on a branch that we are willing to force push
-            // $currentBranch = cmd('git rev-parse --abbrev-ref HEAD', $MODULE_DIR);
-            // if (!preg_match('#^pulls/([0-9\.]+|master|main)/module\-standardiser\-[0-9]{10}$#', $currentBranch)) {
-            //     error("Branch $currentBranch is not a pull-request branch");
-            // }
-            // cmd("git push -f -u pr-remote $prBranch", $MODULE_DIR);
-            // // create pull-request using github api
-            // if (!$input->getOption('update-prs')) {
-            //     // https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#create-a-pull-request
-            //     $responseJson = github_api("https://api.github.com/repos/$account/$repo/pulls", [
-            //         'title' => $PR_TITLE,
-            //         'body' => $PR_DESCRIPTION,
-            //         'head' => "$prAccount:$prBranch",
-            //         'base' => $newMajorBranch,
-            //     ]);
-            //     $PRS_CREATED[] = $responseJson['html_url'];
-            //     info("Created pull-request for $repo");
-            // }
-            // $REPOS_WITH_PRS_CREATED[] = $repo;
+            // push changes to pr-remote
+            // force pushing for cases when doing update-prs
+            // double make check we're on a branch that we are willing to force push
+            $currentBranch = cmd('git rev-parse --abbrev-ref HEAD', $MODULE_DIR);
+            if (!preg_match('#^pulls/([0-9\.]+|master|main)/module\-standardiser\-[0-9]{10}$#', $currentBranch)) {
+                error("Branch $currentBranch is not a pull-request branch");
+            }
+            cmd("git push -f -u pr-remote $prBranch", $MODULE_DIR);
+            // create pull-request using github api
+            if (!$input->getOption('update-prs')) {
+                // https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#create-a-pull-request
+                $responseJson = github_api("https://api.github.com/repos/$account/$repo/pulls", [
+                    'title' => $PR_TITLE,
+                    'body' => $PR_DESCRIPTION,
+                    'head' => "$prAccount:$prBranch",
+                    'base' => (string) $newMajorBranch,
+                ]);
+                $PRS_CREATED[] = $responseJson['html_url'];
+                info("Created pull-request for $repo");
+            }
+            $REPOS_WITH_PRS_CREATED[] = $repo;
         }
     }
     output_repos_with_prs_created();
