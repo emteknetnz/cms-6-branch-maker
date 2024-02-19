@@ -36,7 +36,10 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
     // modules
     $modules = filtered_modules($cmsMajor, $input);
 
-    $modules = array_filter($modules, function($module) {
+    // ALL MODULES
+    $allModules = array_merge(supported_modules($cmsMajor), extra_repositories());
+
+    $allModules = array_filter($allModules, function($module) {
         $ghrepo = $module['ghrepo'];
         if (str_contains($ghrepo, 'gha-')) {
             return false;
@@ -63,7 +66,7 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
         return true;
     });
 
-    usort($modules, function($a, $b) {
+    usort($allModules, function($a, $b) {
         return $a['ghrepo'] <=> $b['ghrepo'];
     });
 
@@ -83,18 +86,33 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
     ];
 
     // EXTRA MODULES
-    $modules[] = [
+    $mods = [];
+    $mods[] = [
         'ghrepo' => 'silverstripe/recipe-testing',
         'account' => 'silverstripe',
         'repo' => 'recipe-testing',
         'cloneUrl' => 'git@github.com:silverstripe/recipe-testing.git',
     ];
-    $modules[] = [
+    $mods[] = [
         'ghrepo' => 'silverstripe/silverstripe-frameworktest',
         'account' => 'silverstripe',
         'repo' => 'silverstripe-frameworktest',
         'cloneUrl' => 'git@github.com:silverstripe/silverstripe-frameworktest.git',
     ];
+    $mods[] = [
+        'ghrepo' => 'silverstripe/silverstripe-behat-extension',
+        'account' => 'silverstripe',
+        'repo' => 'silverstripe-behat-extension',
+        'cloneUrl' => 'git@github.com:silverstripe/silverstripe-behat-extension.git',
+    ];
+    $mods[] = [
+        'ghrepo' => 'silverstripe/silverstripe-serve',
+        'account' => 'silverstripe',
+        'repo' => 'silverstripe-serve',
+        'cloneUrl' => 'git@github.com:silverstripe/silverstripe-serve.git',
+    ];
+    $modules = array_merge($mods, $modules);
+    $allModules = array_merge($mods, $allModules);
 
     // clone repos & run scripts
     foreach (['clone-only', 'run-scripts'] as $thinger) {
@@ -109,7 +127,7 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
             }
         }
         if ($thinger === 'run-scripts') {
-            foreach ($modules as $module) {
+            foreach ($allModules as $module) {
                 $repo = $module['repo'];
                 $MODULE_DIR =  MODULES_DIR . "/$repo";
                 if (!file_exists("$MODULE_DIR/composer.json")) {
@@ -229,21 +247,6 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
 
             // NEED TO RUN THIS TWICE, SO WE CAN CREATE A MAP
             if ($thinger === 'clone-only') {
-                continue;
-            }
-
-            // TMP
-            if ($thinger === 'run-scripts') {
-
-
-                foreach ($scriptFiles as $scriptFile) {
-                    $contents = file_get_contents($scriptFile);
-                    $contents = str_replace('<?php', '', $contents);
-                    // wrap in an anonymous function to ensure that script variables do not go into the global scope
-                    $contents = implode("\n", ['(function() {', $contents, '})();']);
-                    eval($contents);
-                }
-
                 continue;
             }
 
