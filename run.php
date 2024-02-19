@@ -28,8 +28,8 @@ $REPOS_WITH_LABELS_UPDATED = [];
 $OUT = null;
 
 // MORE GLOBAL VARIABLES
-$repoToComposerName = [];
-$composerNameToRepo = [];
+$REPO_TO_COMPOSER_NAME = [];
+$COMPOSER_NAME_TO_REPO = [];
 
 // options
 $optionCmsMajor = [

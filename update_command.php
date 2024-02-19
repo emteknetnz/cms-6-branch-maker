@@ -30,7 +30,7 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
     $cmsMajor = $input->getOption('cms-major') ?: CURRENT_CMS_MAJOR;
 
     // HARDCODED TO USE CMS5 NEXT-MINOR BRANCHES
-    $cmsMajor = '5';
+    $cmsMajor = CURRENT_CMS_MAJOR;
     $branchOption = 'next-minor';
 
     // modules
@@ -79,7 +79,21 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
 
     // HARDCODED SCRIPTS
     $scriptFiles = [
-        'scripts/cms6-branch-maker/run.php'
+        'scripts/cms6-branch-maker/cms6-composer.php'
+    ];
+
+    // EXTRA MODULES
+    $modules[] = [
+        'ghrepo' => 'silverstripe/recipe-testing',
+        'account' => 'silverstripe',
+        'repo' => 'recipe-testing',
+        'cloneUrl' => 'git@github.com:silverstripe/recipe-testing.git',
+    ];
+    $modules[] = [
+        'ghrepo' => 'silverstripe/silverstripe-frameworktest',
+        'account' => 'silverstripe',
+        'repo' => 'silverstripe-frameworktest',
+        'cloneUrl' => 'git@github.com:silverstripe/silverstripe-frameworktest.git',
     ];
 
     // clone repos & run scripts
