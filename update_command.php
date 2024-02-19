@@ -57,8 +57,8 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
             'silverstripe/webpack-config',
             // 'silverstripe/developer-docs',
             // themes
-            'silverstripe/cwp-starter-theme',
-            'silverstripe/cwp-watea-theme',
+            // 'silverstripe/cwp-starter-theme',
+            // 'silverstripe/cwp-watea-theme',
             'silverstripe-themes/silverstripe-simple',
         ])) {
             return false;
@@ -342,10 +342,10 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
                 continue;
             }
 
-            if ($repo !== 'silverstripe-campaign-admin') {
-                info("Skipping $repo because not silverstripe/silverstripe-campaign-admin");
-                continue;
-            }
+            // if ($repo !== 'cwp-starter-theme' && $repo !== 'cwp-watea-theme') {
+            //     info("Skipping $repo manually");
+            //     continue;
+            // }
 
             // PUSH `6` branch to remotes
             cmd("git checkout $newMajorBranch", $MODULE_DIR);
@@ -356,6 +356,8 @@ $updateCommand = function(InputInterface $input, OutputInterface $output): int {
 
             // CHECKOUT PR BRANCH AGAIN
             cmd("git checkout $prBranch", $MODULE_DIR);
+
+            // continue;
 
             $PR_DESCRIPTION = 'Issue https://github.com/silverstripe/.github/issues/191';
 
